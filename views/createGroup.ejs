@@ -1,0 +1,15 @@
+<%- include("templates/header") %>
+<h1>Create a new group</h1>
+<form action="/user/api/createGroup" method="post">
+    <label for="groupName">Group Name:</label>
+    <input type="text" id="groupName" name="groupName" required />
+   <div class="addUser">
+        <% users.forEach(user => { %>
+            <input type="checkbox" id="<%= user.user_id %>" name="users" value="<%= user.user_id %>" />
+            <label for="<%= user.user_id %>"><%= user.username %></label>
+            <br>
+        <% }) %>
+   </div>
+    <button type="submit">Create Group</button>
+</form>
+<%- include("templates/footer") %>

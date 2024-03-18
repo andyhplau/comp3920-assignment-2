@@ -64,13 +64,14 @@ app.use("/user", sessionValidation);
 
 //#region Routes
 app.get("/", (req, res) => {
-  res.render("index", { title: "Hello, World!" });
+  res.render("index", { username: req.session.username });
 });
 
 app.get("/signup", (req, res) => {
   var missingUsername = req.query.missingUsername;
   var missingPassword = req.query.missingPassword;
   res.render("signup", {
+    username: req.session.username,
     missingUsername: missingUsername,
     missingPassword: missingPassword,
   });
@@ -82,6 +83,7 @@ app.get("/login", (req, res) => {
   var incorrectUsername = req.query.incorrectUsername;
   var incorrectPassword = req.query.incorrectPassword;
   res.render("login", {
+    username: req.session.username,
     missingUsername: missingUsername,
     missingPassword: missingPassword,
     incorrectUsername: incorrectUsername,
@@ -91,6 +93,16 @@ app.get("/login", (req, res) => {
 
 app.get("/user", (req, res) => {
   res.render("user", { username: req.session.username });
+});
+
+app.get("/user/createGroup", (req, res) => {
+  db.getAllUsers().then((users) => {
+    otherUsers = users.filter((user) => user.user_id != req.session.user_id);
+    res.render("createGroup", {
+      username: req.session.username,
+      users: otherUsers,
+    });
+  });
 });
 //#end region Routes
 
@@ -118,7 +130,10 @@ app.post("/api/signup", async (req, res) => {
       res.redirect("/");
       return;
     } else {
-      res.render("error", { error: "Failed to create user." });
+      res.render("error", {
+        error: "Failed to create user.",
+        username: req.session.username,
+      });
       return;
     }
   }
@@ -148,6 +163,7 @@ app.post("/api/login", async (req, res) => {
         if (bcrypt.compareSync(password, results[0].password)) {
           req.session.authenticated = true;
           req.session.username = username;
+          req.session.user_id = results[0].user_id;
           req.session.cookie.maxAge = expireTime;
           res.redirect("/user");
           return;
@@ -167,6 +183,26 @@ app.get("/api/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
   return;
+});
+
+app.post("/user/api/createGroup", async (req, res) => {
+  var result = await db.createGroup({
+    groupName: req.body.groupName,
+    users: req.body.users,
+    user_id: req.session.user_id,
+  });
+  if (result) {
+    console.log("Successfully created group");
+    res.redirect("/user");
+    return;
+  } else {
+    console.log("Failed to create group");
+    res.render("error", {
+      error: "Failed to create group.",
+      username: req.session.username,
+    });
+    return;
+  }
 });
 //#end region APIs
 
