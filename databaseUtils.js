@@ -103,18 +103,19 @@ const createGroup = async (postData) => {
     (:groupName, NOW());
   `;
   let params = { groupName: postData.groupName };
-  console.log("users", postData.users);
   try {
     const createGroupResults = await database.query(createGroupSQL, params);
     const chatgroupId = createGroupResults[0].insertId;
-    const addUser = addUsersToGroup({
-      userId: postData.user_id,
+    const addUserResult = addUsersToGroup({
+      userId: postData.userId,
       chatgroupId: chatgroupId,
     });
-    if (!addUser) {
+    if (!addUserResult) {
       return false;
     }
-    postData.users.forEach(async (userId) => {
+    const otherUsers =
+      postData.users.length > 1 ? postData.users : [postData.users];
+    otherUsers.forEach(async (userId) => {
       const addOtherUsersResult = addUsersToGroup({
         userId: userId,
         chatgroupId: chatgroupId,

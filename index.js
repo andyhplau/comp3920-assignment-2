@@ -189,7 +189,7 @@ app.post("/user/api/createGroup", async (req, res) => {
   var result = await db.createGroup({
     groupName: req.body.groupName,
     users: req.body.users,
-    user_id: req.session.user_id,
+    userId: req.session.user_id,
   });
   if (result) {
     console.log("Successfully created group");
@@ -206,7 +206,7 @@ app.post("/user/api/createGroup", async (req, res) => {
 });
 //#end region APIs
 
-// Always the last route to catch all not found pages
+// Catch all not found pages
 app.get("*", (req, res) => {
   res.status(404);
   res.send("Page not found - 404");
