@@ -5,13 +5,13 @@ const express = require("express");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const bcrypt = require("bcrypt");
-saltRounds = 12;
 const app = express();
 const port = process.env.PORT || 3000;
-
 app.set("view engine", "ejs");
 app.use(express.static(__dirname + "/public"));
 const db = require("./databaseUtils");
+saltRounds = 12;
+const expireTime = 60 * 60 * 1000;
 //#end region INITIAL SETUP
 
 //#region MONGODB SETUP
@@ -41,6 +41,27 @@ app.use(
 //#region MIDDLEWARES
 app.use(express.urlencoded({ extended: false }));
 
+const isValidSession = (req) => {
+  if (req.session.authenticated) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+const sessionValidation = (req, res, next) => {
+  if (!isValidSession(req)) {
+    req.session.destroy();
+    res.redirect("/");
+    return;
+  } else {
+    next();
+  }
+};
+
+app.use("/user", sessionValidation);
+//#end region MIDDLEWARES
+
 //#region Routes
 app.get("/", (req, res) => {
   res.render("index", { title: "Hello, World!" });
@@ -55,6 +76,22 @@ app.get("/signup", (req, res) => {
   });
 });
 
+app.get("/login", (req, res) => {
+  var missingUsername = req.query.missingUsername;
+  var missingPassword = req.query.missingPassword;
+  var incorrectUsername = req.query.incorrectUsername;
+  var incorrectPassword = req.query.incorrectPassword;
+  res.render("login", {
+    missingUsername: missingUsername,
+    missingPassword: missingPassword,
+    incorrectUsername: incorrectUsername,
+    incorrectPassword: incorrectPassword,
+  });
+});
+
+app.get("/user", (req, res) => {
+  res.render("user", { username: req.session.username });
+});
 //#end region Routes
 
 //#region APIs
@@ -85,6 +122,51 @@ app.post("/api/signup", async (req, res) => {
       return;
     }
   }
+});
+
+app.post("/api/login", async (req, res) => {
+  var username = req.body.username;
+  var password = req.body.password;
+
+  if (!username && !password) {
+    res.redirect("/login?missingUsername=1&missingPassword=1");
+    return;
+  } else if (!username) {
+    res.redirect("/login?missingUsername=1");
+    return;
+  } else if (!password) {
+    res.redirect("/login?missingPassword=1");
+    return;
+  } else {
+    var results = await db.getUser({
+      user: username,
+      hashedPassword: password,
+    });
+
+    if (results) {
+      if (results.length == 1) {
+        if (bcrypt.compareSync(password, results[0].password)) {
+          req.session.authenticated = true;
+          req.session.username = username;
+          req.session.cookie.maxAge = expireTime;
+          res.redirect("/user");
+          return;
+        } else {
+          res.redirect("/login?incorrectPassword=1");
+          return;
+        }
+      }
+    } else {
+      res.redirect("/login?incorrectUsername=1");
+      return;
+    }
+  }
+});
+
+app.get("/api/logout", (req, res) => {
+  req.session.destroy();
+  res.redirect("/");
+  return;
 });
 //#end region APIs
 
