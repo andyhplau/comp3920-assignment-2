@@ -11,6 +11,7 @@ const port = process.env.PORT || 3000;
 
 app.set("view engine", "ejs");
 app.use(express.static(__dirname + "/public"));
+const db = require("./databaseUtils");
 //#end region INITIAL SETUP
 
 //#region MONGODB SETUP
@@ -37,9 +38,60 @@ app.use(
 );
 //#end region SESSION SETUP
 
-// Routes
+//#region MIDDLEWARES
+app.use(express.urlencoded({ extended: false }));
+
+//#region Routes
 app.get("/", (req, res) => {
   res.render("index", { title: "Hello, World!" });
+});
+
+app.get("/signup", (req, res) => {
+  var missingUsername = req.query.missingUsername;
+  var missingPassword = req.query.missingPassword;
+  res.render("signup", {
+    missingUsername: missingUsername,
+    missingPassword: missingPassword,
+  });
+});
+
+//#end region Routes
+
+//#region APIs
+app.post("/api/signup", async (req, res) => {
+  var username = req.body.username;
+  var password = req.body.password;
+  if (!username && !password) {
+    res.redirect("/signup?missingUsername=1&missingPassword=1");
+    return;
+  } else if (!username) {
+    res.redirect("/signup?missingUsername=1");
+    return;
+  } else if (!password) {
+    res.redirect("/signup?missingPassword=1");
+    return;
+  } else {
+    var hashedPassword = bcrypt.hashSync(password, saltRounds);
+    var success = await db.createUser({
+      user: username,
+      hashedPassword: hashedPassword,
+    });
+
+    if (success) {
+      res.redirect("/");
+      return;
+    } else {
+      res.render("error", { error: "Failed to create user." });
+      return;
+    }
+  }
+});
+//#end region APIs
+
+// Always the last route to catch all not found pages
+app.get("*", (req, res) => {
+  res.status(404);
+  res.send("Page not found - 404");
 });
 
 // Start the server

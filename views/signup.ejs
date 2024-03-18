@@ -1,0 +1,22 @@
+<%- include("templates/header") %>
+<h1>Create User</h1>
+<form action="/api/signup" method="POST">
+  <input type="text" name="username" placeholder="username" required />
+  <br />
+  <input
+    type="password"
+    name="password"
+    placeholder="password"
+    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.#$!%*?&^])[A-Za-z\d@.#$!%*?&]{10,16}"
+    title="Must contain at least one number and one uppercase and lowercase letter, and at least 10 and at most 16 characters"
+    required
+  />
+  <br />
+  <button type="submit">Sign up</button>
+</form>
+
+<% if (missingUsername) { %>
+<p>Please provide a username</p>
+<% } %> <% if (missingPassword) { %>
+<p>Please provide a password</p>
+<% } %> <%- include("templates/footer") %>
