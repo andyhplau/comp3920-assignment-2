@@ -126,6 +126,19 @@ app.get("/user/chatgroup/:chatgroupId", (req, res) => {
     );
   });
 });
+
+app.get("/user/invite/:chatgroupId", (req, res) => {
+  db.getAllUsersNotInGroup({ chatgroupId: req.params.chatgroupId }).then(
+    (users) => {
+      console.log(users);
+      res.render("invite", {
+        username: req.session.username,
+        users: users,
+        chatgroupId: req.params.chatgroupId,
+      });
+    }
+  );
+});
 //#end region Routes
 
 //#region APIs
@@ -252,10 +265,13 @@ app.get(
   async (req, res) => {
     db.getAllMessages({ chatgroupId: req.params.chatgroupId }).then(
       (messages) => {
-        const result = db.updateLastReadMessage({
-          lastReadMessageId: messages[messages.length - 1].message_id,
-          chatgroupUserId: req.params.chatgroupUserId,
-        });
+        let result = 1;
+        if (messages.length > 0) {
+          result = db.updateLastReadMessage({
+            lastReadMessageId: messages[messages.length - 1].message_id,
+            chatgroupUserId: req.params.chatgroupUserId,
+          });
+        }
         if (result) {
           res.redirect("/user");
         } else {

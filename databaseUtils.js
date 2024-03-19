@@ -69,6 +69,38 @@ const getAllUsers = async () => {
   }
 };
 
+const getAllUsersNotInGroup = async (postData) => {
+  let getAllUsersNotInGroupSQL = `
+    SELECT user_id, username
+    FROM user
+    WHERE user_id NOT IN (
+      SELECT user_id
+      FROM chatgroup_user
+      WHERE chatgroup_id = :chatgroupId
+    );
+  `;
+
+  let params = {
+    chatgroupId: postData.chatgroupId,
+  };
+
+  try {
+    const results = await database.query(getAllUsersNotInGroupSQL, params);
+
+    console.log(
+      `Successfully found all users not in group ${postData.chatgroupId}`
+    );
+    console.log(results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(
+      `Error trying to find all users not in group ${postData.chatgroupId}`
+    );
+    console.log(err);
+    return false;
+  }
+};
+
 const addUsersToGroup = async (postData) => {
   let addUsersToGroupSQL = `
     INSERT INTO chatgroup_user
@@ -295,4 +327,5 @@ module.exports = {
   getChatgroupUserId,
   sendMessage,
   updateLastReadMessage,
+  getAllUsersNotInGroup,
 };

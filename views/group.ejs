@@ -1,7 +1,7 @@
 <!-- chatgroupId, userId, messages -->
 <%- include("templates/header") %>
 <p><a href="/user/api/updateLastReadMessage/<%- chatgroupId %>/<%= chatgroupUserId %>"><button>Back to User Page</button></a></p>
-<p><a href=""><button>Invite People</button></a></p>
+<p><a href="/user/invite/<%- chatgroupId %>"><button>Invite People</button></a></p>
 <div>
     <% console.log(messages) %>
     <% messages.forEach((message, i) => { %>
