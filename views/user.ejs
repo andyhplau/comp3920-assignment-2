@@ -17,6 +17,17 @@
     </div>
     <div style="padding: 10px;">
         <p style="height: 25px; font-weight: bold;"># of unread messages</p>
+    <% groups.forEach(group => { %>
+        <% let numOfUnread;
+        if (group.last_read_message_id == null && group.num_messages_behind == null) {
+            numOfUnread = "Never Read"
+        } else if (group.num_messages_behind == null) {
+            numOfUnread = 0
+        } else {
+            numOfUnread = group.num_messages_behind
+        } %>
+        <p style="height: 25px;"><%= numOfUnread %></p>
+    <% }) %>
     </div>
     <div style="padding: 10px;">
         <p style="height: 25px; font-weight: bold;">Click to Enter Group</p>

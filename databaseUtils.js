@@ -137,12 +137,23 @@ const createGroup = async (postData) => {
 
 const getAllGroups = async (postData) => {
   let getAllGroupsSQL = `
-    SELECT c.chatgroup_id, c.name AS group_name, cu.last_read_message_id, m.sent_time AS last_message_time
-    FROM chatgroup_user AS cu
-    JOIN chatgroup AS c using(chatgroup_id)
-    LEFT JOIN message AS m
-    ON m.message_id = cu.last_read_message_id
-    WHERE user_id = :userId;
+  SELECT c.chatgroup_id, c.name AS group_name, cu.last_read_message_id, m.sent_time AS last_message_time, unread_count.num_messages_behind
+  FROM chatgroup_user AS cu
+  JOIN chatgroup AS c using(chatgroup_id)
+  LEFT JOIN message AS m
+  ON m.message_id = cu.last_read_message_id
+  LEFT JOIN (
+    SELECT  ocu.chatgroup_user_id, ocu.user_id, ocu.chatgroup_id, COUNT(unread_message.message_id) AS num_messages_behind
+    FROM chatgroup_user AS ocu
+    JOIN (
+      SELECT *
+      FROM chatgroup_user AS icu
+      JOIN message AS m USING (chatgroup_user_id)
+      WHERE icu.last_read_message_id < m.message_id
+    ) AS unread_message USING (chatgroup_user_id)
+    GROUP BY ocu.chatgroup_user_id
+  ) AS unread_count USING (user_id, chatgroup_id)
+  WHERE cu.user_id = :userId;
   `;
 
   let params = {
