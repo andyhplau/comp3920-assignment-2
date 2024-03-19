@@ -92,7 +92,10 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/user", (req, res) => {
-  res.render("user", { username: req.session.username });
+  console.log(req.session.user_id);
+  db.getAllGroups({ userId: req.session.user_id }).then((groups) =>
+    res.render("user", { username: req.session.username, groups: groups })
+  );
 });
 
 app.get("/user/createGroup", (req, res) => {

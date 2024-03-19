@@ -135,4 +135,36 @@ const createGroup = async (postData) => {
   }
 };
 
-module.exports = { createUser, getUser, getAllUsers, createGroup };
+const getAllGroups = async (postData) => {
+  let getAllGroupsSQL = `
+    SELECT c.chatgroup_id, c.name AS group_name
+    FROM chatgroup_user AS cu
+    JOIN chatgroup AS c using(chatgroup_id)
+    WHERE user_id = :userId;
+  `;
+
+  let params = {
+    userId: postData.userId,
+  };
+
+  try {
+    const results = await database.query(getAllGroupsSQL, params);
+
+    console.log(`Successfully found all groups for user ${postData.userId}`);
+    console.log(results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(`Error trying to find all groups for user ${postData.userId}`);
+    console.log(err);
+    return false;
+  }
+};
+
+module.exports = {
+  createUser,
+  getUser,
+  addUsersToGroup,
+  getAllUsers,
+  createGroup,
+  getAllGroups,
+};

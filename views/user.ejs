@@ -1,4 +1,17 @@
 <%- include("templates/header") %>
 <h1>Hello, <%- username %>! Welcome back!</h1>
+<div style="display: flex; flex-direction: row;align-items: end;">
+    <div style="padding: 10px;">
+    <% groups.forEach(group => { %>
+        <p><%= group.group_name %></p>
+    <% }) %>
+    </div>
+    <div style="padding: 10px;">
+        <p>last message</p>
+    </div>
+    <div style="padding: 10px;">
+        <p># of unread messages</p>
+    </div>
+</div>
 <a href="/user/createGroup"><button>Create New Group</button></a>
 <%- include("templates/footer") %>
