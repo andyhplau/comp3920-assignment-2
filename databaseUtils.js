@@ -137,9 +137,11 @@ const createGroup = async (postData) => {
 
 const getAllGroups = async (postData) => {
   let getAllGroupsSQL = `
-    SELECT c.chatgroup_id, c.name AS group_name
+    SELECT c.chatgroup_id, c.name AS group_name, cu.last_read_message_id, m.sent_time AS last_message_time
     FROM chatgroup_user AS cu
     JOIN chatgroup AS c using(chatgroup_id)
+    LEFT JOIN message AS m
+    ON m.message_id = cu.last_read_message_id
     WHERE user_id = :userId;
   `;
 
@@ -160,6 +162,117 @@ const getAllGroups = async (postData) => {
   }
 };
 
+const getAllMessages = async (postData) => {
+  let getAllMessagesSQL = `
+    SELECT u.user_id, u.username, cu.chatgroup_user_id, m.message_id, m.text, m.sent_time, cu.last_read_message_id
+    FROM message AS m
+    JOIN chatgroup_user AS cu USING (chatgroup_user_id)
+    JOIN user AS u USING (user_id)
+    WHERE cu.chatgroup_id = :chatgroupId
+    ORDER BY m.sent_time ASC;
+  `;
+
+  let params = {
+    chatgroupId: postData.chatgroupId,
+  };
+
+  try {
+    const results = await database.query(getAllMessagesSQL, params);
+
+    console.log(
+      `Successfully found all messages for group ${postData.chatgroupId}`
+    );
+    console.log(results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(
+      `Error trying to find all messages for group ${postData.chatgroupId}`
+    );
+    console.log(err);
+    return false;
+  }
+};
+
+const getChatgroupUserId = async (postData) => {
+  let getChatgroupUserIdSQL = `
+    SELECT chatgroup_user_id
+    FROM chatgroup_user
+    WHERE user_id = :userId AND chatgroup_id = :chatgroupId;
+  `;
+
+  let params = {
+    userId: postData.userId,
+    chatgroupId: postData.chatgroupId,
+  };
+
+  try {
+    const results = await database.query(getChatgroupUserIdSQL, params);
+
+    console.log(
+      `Successfully found chatgroup_user_id for user ${postData.userId} and group ${postData.chatgroupId}`
+    );
+    console.log(results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(
+      `Error trying to find chatgroup_user_id for user ${postData.userId} and group ${postData.chatgroupId}`
+    );
+    console.log(err);
+    return false;
+  }
+};
+
+const sendMessage = async (postData) => {
+  let sendMessageSQL = `
+    INSERT INTO message
+    (chatgroup_user_id, text, sent_time)
+    VALUES
+    (:chatgroupUserId, :text, NOW());
+  `;
+
+  let params = {
+    chatgroupUserId: postData.chatgroupUserId,
+    text: postData.text,
+  };
+
+  try {
+    const results = await database.query(sendMessageSQL, params);
+
+    console.log("Successfully sent message");
+    console.log(results[0]);
+    return true;
+  } catch (err) {
+    console.log("Error sending message");
+    console.log(err);
+    return false;
+  }
+};
+
+const updateLastReadMessage = async (postData) => {
+  let updateLastReadMessageSQL = `
+    UPDATE chatgroup_user
+    SET last_read_message_id = :lastReadMessageId
+    WHERE chatgroup_user_id = :chatgroupUserId;
+  `;
+
+  let params = {
+    lastReadMessageId: postData.lastReadMessageId,
+    chatgroupUserId: postData.chatgroupUserId,
+  };
+
+  try {
+    const results = await database.query(updateLastReadMessageSQL, params);
+
+    console.log("Successfully updated last read message");
+    console.log(results[0]);
+    return true;
+  } catch (err) {
+    console.log("Error updating last read message");
+    console.log(err);
+    return false;
+  }
+};
+
 module.exports = {
   createUser,
   getUser,
@@ -167,4 +280,8 @@ module.exports = {
   getAllUsers,
   createGroup,
   getAllGroups,
+  getAllMessages,
+  getChatgroupUserId,
+  sendMessage,
+  updateLastReadMessage,
 };

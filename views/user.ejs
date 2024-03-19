@@ -1,17 +1,29 @@
 <%- include("templates/header") %>
 <h1>Hello, <%- username %>! Welcome back!</h1>
+<a href="/user/createGroup"><button>Create New Group</button></a>
 <div style="display: flex; flex-direction: row;align-items: end;">
     <div style="padding: 10px;">
+        <p style="height: 25px; font-weight: bold;">Group Name</p>
     <% groups.forEach(group => { %>
-        <p><%= group.group_name %></p>
+        <p style="height: 25px;"><%= group.group_name %></p>
     <% }) %>
     </div>
     <div style="padding: 10px;">
-        <p>last message</p>
+        <p style="height: 25px; font-weight: bold;">last message</p>
+    <% groups.forEach(group => { %>
+        <% const sentTime = group.last_message_time ? new Date(group.last_message_time).toLocaleString('en-us',{year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Never Read" %>
+        <p style="height: 25px;"><%= sentTime %></p>
+    <% }) %>
     </div>
     <div style="padding: 10px;">
-        <p># of unread messages</p>
+        <p style="height: 25px; font-weight: bold;"># of unread messages</p>
+    </div>
+    <div style="padding: 10px;">
+        <p style="height: 25px; font-weight: bold;">Click to Enter Group</p>
+        <% groups.forEach(group => { %>
+            <p style="height: 25px;"><a href="/user/chatgroup/<%= group.chatgroup_id %>"><button>Enter Group</button></a></p>
+        <% }) %>
     </div>
 </div>
-<a href="/user/createGroup"><button>Create New Group</button></a>
+
 <%- include("templates/footer") %>

@@ -92,7 +92,6 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/user", (req, res) => {
-  console.log(req.session.user_id);
   db.getAllGroups({ userId: req.session.user_id }).then((groups) =>
     res.render("user", { username: req.session.username, groups: groups })
   );
@@ -105,6 +104,26 @@ app.get("/user/createGroup", (req, res) => {
       username: req.session.username,
       users: otherUsers,
     });
+  });
+});
+
+app.get("/user/chatgroup/:chatgroupId", (req, res) => {
+  db.getChatgroupUserId({
+    userId: req.session.user_id,
+    chatgroupId: req.params.chatgroupId,
+  }).then((id) => {
+    db.getAllMessages({ chatgroupId: req.params.chatgroupId }).then(
+      (messages) => {
+        console.log(messages);
+        res.render("group", {
+          username: req.session.username,
+          userId: req.session.user_id,
+          chatgroupId: req.params.chatgroupId,
+          messages: messages,
+          chatgroupUserId: id[0].chatgroup_user_id,
+        });
+      }
+    );
   });
 });
 //#end region Routes
@@ -207,6 +226,48 @@ app.post("/user/api/createGroup", async (req, res) => {
     return;
   }
 });
+
+app.post("/user/api/sendMessage/:chatgroupId", async (req, res) => {
+  db.getChatgroupUserId({
+    userId: req.session.user_id,
+    chatgroupId: req.params.chatgroupId,
+  }).then((id) => {
+    const result = db.sendMessage({
+      chatgroupUserId: id[0].chatgroup_user_id,
+      text: req.body.text,
+    });
+    if (result) {
+      res.redirect(`/user/chatgroup/${req.params.chatgroupId}`);
+    } else {
+      res.render("error", {
+        error: "Failed to send message.",
+        username: req.session.username,
+      });
+    }
+  });
+});
+
+app.get(
+  "/user/api/updateLastReadMessage/:chatgroupId/:chatgroupUserId",
+  async (req, res) => {
+    db.getAllMessages({ chatgroupId: req.params.chatgroupId }).then(
+      (messages) => {
+        const result = db.updateLastReadMessage({
+          lastReadMessageId: messages[messages.length - 1].message_id,
+          chatgroupUserId: req.params.chatgroupUserId,
+        });
+        if (result) {
+          res.redirect("/user");
+        } else {
+          res.redirect("/error", {
+            error: "Failed to update last read message.",
+            username: req.session.username,
+          });
+        }
+      }
+    );
+  }
+);
 //#end region APIs
 
 // Catch all not found pages
