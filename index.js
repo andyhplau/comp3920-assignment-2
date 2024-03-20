@@ -168,16 +168,20 @@ app.get("/user/chatgroup/:chatgroupId", (req, res) => {
 });
 
 app.get("/user/invite/:chatgroupId", (req, res) => {
-  db.getAllUsersNotInGroup({ chatgroupId: req.params.chatgroupId }).then(
-    (users) => {
-      console.log(users);
-      res.render("invite", {
-        username: req.session.username,
-        users: users,
-        chatgroupId: req.params.chatgroupId,
-      });
-    }
-  );
+  db.getAllUsers().then((users) => {
+    db.getAllUsersNotInGroup({ chatgroupId: req.params.chatgroupId }).then(
+      (otherUsers) => {
+        groupUsers = users.filter((user) => !otherUsers.includes(user));
+        res.render("invite", {
+          username: req.session.username,
+          otherUsers,
+          groupUsers,
+          chatgroupId: req.params.chatgroupId,
+          lastReadMessageId: req.query.lastReadMessageId,
+        });
+      }
+    );
+  });
 });
 //#end region Routes
 
@@ -304,11 +308,12 @@ app.post("/user/api/sendMessage/:chatgroupId", async (req, res) => {
 app.get(
   "/user/api/updateLastReadMessage/:chatgroupId/:chatgroupUserId",
   async (req, res) => {
-    db.getAllMessages({ chatgroupId: req.params.chatgroupId }).then(
-      (messages) => {
+    await db
+      .getAllMessages({ chatgroupId: req.params.chatgroupId })
+      .then(async (messages) => {
         let result = 1;
         if (messages.length > 0) {
-          result = db.updateLastReadMessage({
+          result = await db.updateLastReadMessage({
             lastReadMessageId: messages[messages.length - 1].message_id,
             chatgroupUserId: req.params.chatgroupUserId,
           });
@@ -321,10 +326,45 @@ app.get(
             username: req.session.username,
           });
         }
-      }
-    );
+      });
   }
 );
+
+app.post("/user/api/invite/:chatgroupId", async (req, res) => {
+  if (req.body.invitedUsers) {
+    try {
+      let result;
+      if (req.body.invitedUsers.length > 1) {
+        result = await Promise.all(
+          req.body.invitedUsers.forEach(async (userId) => {
+            await db.addUserToGroup({
+              userId: userId,
+              chatgroupId: req.params.chatgroupId,
+              lastReadMessageId: req.query.lastReadMessageId,
+            });
+          })
+        );
+      } else {
+        result = await db.addUserToGroup({
+          userId: req.body.invitedUsers,
+          chatgroupId: req.params.chatgroupId,
+          lastReadMessageId: req.query.lastReadMessageId,
+        });
+      }
+      if (result) {
+        res.redirect(`/user/chatgroup/${req.params.chatgroupId}`);
+      }
+    } catch (err) {
+      console.log(err);
+      res.render("error", {
+        error: "Failed to invite users.",
+        username: req.session.username,
+      });
+    }
+  } else {
+    res.redirect(`/user/chatgroup/${req.params.chatgroupId}`);
+  }
+});
 //#end region APIs
 
 // Catch all not found pages

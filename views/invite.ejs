@@ -1,9 +1,15 @@
 <%- include("templates/header") %>
 <h1>Add more users to the group:</h1>
-<form action="/user/api/invite/<%- chatgroupId %>" method="post">
+<form action="/user/api/invite/<%- chatgroupId %><%- lastReadMessageId ? '?lastReadMessageId=' + lastReadMessageId : '' %>" method="post">
     <div class="addUser">
-        <% users.forEach(user => { %>
-            <input type="checkbox" id="<%= user.user_id %>" name="users" value="<%= user.user_id %>" />
+        <h3>Users In group:</h3>
+        <% groupUsers.forEach(user => { %>
+            <span><%= user.username %></span>
+            <br>
+        <% }) %>
+        <h3>Users To add:</h3>
+        <% otherUsers.forEach(user => { %>
+            <input type="checkbox" id="<%= user.user_id %>" name="invitedUsers" value="<%= user.user_id %>" />
             <label for="<%= user.user_id %>"><%= user.username %></label>
             <br>
         <% }) %>

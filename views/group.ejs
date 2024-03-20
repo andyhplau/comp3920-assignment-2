@@ -3,7 +3,13 @@
   <a href="/user"><button>Back to User Page</button></a>
 </p>
 <p>
-  <a href="/user/invite/<%- chatgroupId %>"><button>Invite People</button></a>
+    <% let lastReadMessageToPass;
+        if (messages.length > 0) {
+            lastReadMessageToPass =  messages[0].message_id;
+        } else {
+            lastReadMessageToPass = undefined;
+        } %>
+  <a href="/user/invite/<%- chatgroupId %><%- lastReadMessageId ? '?lastReadMessageId=' + lastReadMessageToPass : '' %>"><button>Invite People</button></a>
 </p>
 <div>
   <% messages.forEach((message, i) => { %>

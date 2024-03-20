@@ -101,21 +101,22 @@ const getAllUsersNotInGroup = async (postData) => {
   }
 };
 
-const addUsersToGroup = async (postData) => {
-  let addUsersToGroupSQL = `
+const addUserToGroup = async (postData) => {
+  let addUserToGroupSQL = `
     INSERT INTO chatgroup_user
-    (user_id, chatgroup_id)
+    (user_id, chatgroup_id, last_read_message_id)
     VALUES
-    (:userId, :chatgroupId);
+    (:userId, :chatgroupId, :lastReadMessageId);
   `;
 
   let params = {
     userId: postData.userId,
     chatgroupId: postData.chatgroupId,
+    lastReadMessageId: postData.lastReadMessageId,
   };
 
   try {
-    const results = await database.query(addUsersToGroupSQL, params);
+    const results = await database.query(addUserToGroupSQL, params);
 
     console.log("Successfully added users to group");
     console.log(results[0]);
@@ -138,7 +139,7 @@ const createGroup = async (postData) => {
   try {
     const createGroupResults = await database.query(createGroupSQL, params);
     const chatgroupId = createGroupResults[0].insertId;
-    const addUserResult = addUsersToGroup({
+    const addUserResult = addUserToGroup({
       userId: postData.userId,
       chatgroupId: chatgroupId,
     });
@@ -148,7 +149,7 @@ const createGroup = async (postData) => {
     const otherUsers =
       postData.users.length > 1 ? postData.users : [postData.users];
     otherUsers.forEach(async (userId) => {
-      const addOtherUsersResult = addUsersToGroup({
+      const addOtherUsersResult = addUserToGroup({
         userId: userId,
         chatgroupId: chatgroupId,
       });
@@ -368,7 +369,7 @@ const getUnreadMessagesCount = async (postData) => {
 module.exports = {
   createUser,
   getUser,
-  addUsersToGroup,
+  addUserToGroup,
   getAllUsers,
   createGroup,
   getAllGroups,
