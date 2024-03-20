@@ -121,11 +121,12 @@ app.get("/user", async (req, res) => {
       })
     );
     res.render("user", { username: req.session.username, groups: groups });
-    // Return or send response here if needed
   } catch (error) {
-    // Handle errors
     console.error(error);
-    // Send an error response if needed
+    res.render("error", {
+      error: "Failed to get groups.",
+      username: req.session.username,
+    });
   }
 });
 
