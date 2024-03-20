@@ -11,22 +11,14 @@
     <div style="padding: 10px;">
         <p style="height: 25px; font-weight: bold;">last message</p>
     <% groups.forEach(group => { %>
-        <% const sentTime = group.last_message_time ? new Date(group.last_message_time).toLocaleString('en-us',{year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "Never Read" %>
+        <% const sentTime = group.last_message_time ? new Date(group.last_message_time).toLocaleString('en-us',{year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "No Messages" %>
         <p style="height: 25px;"><%= sentTime %></p>
     <% }) %>
     </div>
     <div style="padding: 10px;">
         <p style="height: 25px; font-weight: bold;"># of unread messages</p>
     <% groups.forEach(group => { %>
-        <% let numOfUnread;
-        if (group.last_read_message_id == null && group.num_messages_behind == null) {
-            numOfUnread = "Never Read"
-        } else if (group.num_messages_behind == null) {
-            numOfUnread = 0
-        } else {
-            numOfUnread = group.num_messages_behind
-        } %>
-        <p style="height: 25px;"><%= numOfUnread %></p>
+        <p style="height: 25px;"><%= group.unread_count %></p>
     <% }) %>
     </div>
     <div style="padding: 10px;">

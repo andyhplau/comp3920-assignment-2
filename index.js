@@ -64,7 +64,12 @@ app.use("/user", sessionValidation);
 
 //#region Routes
 app.get("/", (req, res) => {
-  res.render("index", { username: req.session.username });
+  if (isValidSession(req)) {
+    res.redirect("/user");
+    return;
+  } else {
+    res.render("index", { username: req.session.username });
+  }
 });
 
 app.get("/signup", (req, res) => {
@@ -91,10 +96,37 @@ app.get("/login", (req, res) => {
   });
 });
 
-app.get("/user", (req, res) => {
-  db.getAllGroups({ userId: req.session.user_id }).then((groups) =>
-    res.render("user", { username: req.session.username, groups: groups })
-  );
+app.get("/user", async (req, res) => {
+  try {
+    const groups = await db.getAllGroups({ userId: req.session.user_id });
+    await Promise.all(
+      groups.map(async (group, i) => {
+        await db
+          .getLatestMessage({
+            chatgroupId: group.chatgroup_id,
+          })
+          .then((message) => {
+            if (message.length > 0) {
+              group.last_message_time = message[0].sent_time;
+            }
+          });
+        await db
+          .getUnreadMessagesCount({
+            lastReadMessageId: group.last_read_message_id,
+            chatgroupId: group.chatgroup_id,
+          })
+          .then((count) => {
+            group.unread_count = count[0].unread_count;
+          });
+      })
+    );
+    res.render("user", { username: req.session.username, groups: groups });
+    // Return or send response here if needed
+  } catch (error) {
+    // Handle errors
+    console.error(error);
+    // Send an error response if needed
+  }
 });
 
 app.get("/user/createGroup", (req, res) => {
@@ -108,19 +140,26 @@ app.get("/user/createGroup", (req, res) => {
 });
 
 app.get("/user/chatgroup/:chatgroupId", (req, res) => {
-  db.getChatgroupUserId({
+  db.getChatgroupUser({
     userId: req.session.user_id,
     chatgroupId: req.params.chatgroupId,
-  }).then((id) => {
+  }).then((user) => {
     db.getAllMessages({ chatgroupId: req.params.chatgroupId }).then(
       (messages) => {
-        console.log(messages);
+        const lastReadMessageId = user[0].last_read_message_id;
+        if (messages.length > 0) {
+          db.updateLastReadMessage({
+            lastReadMessageId: messages[messages.length - 1].message_id,
+            chatgroupUserId: user[0].chatgroup_user_id,
+          });
+        }
         res.render("group", {
           username: req.session.username,
           userId: req.session.user_id,
           chatgroupId: req.params.chatgroupId,
           messages: messages,
-          chatgroupUserId: id[0].chatgroup_user_id,
+          chatgroupUserId: user[0].chatgroup_user_id,
+          lastReadMessageId: lastReadMessageId,
         });
       }
     );
@@ -215,9 +254,10 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.get("/api/logout", (req, res) => {
-  req.session.destroy();
-  res.redirect("/");
-  return;
+  req.session.destroy(() => {
+    res.redirect("/");
+    return;
+  });
 });
 
 app.post("/user/api/createGroup", async (req, res) => {
@@ -241,7 +281,7 @@ app.post("/user/api/createGroup", async (req, res) => {
 });
 
 app.post("/user/api/sendMessage/:chatgroupId", async (req, res) => {
-  db.getChatgroupUserId({
+  db.getChatgroupUser({
     userId: req.session.user_id,
     chatgroupId: req.params.chatgroupId,
   }).then((id) => {

@@ -130,7 +130,7 @@ const addUsersToGroup = async (postData) => {
 const createGroup = async (postData) => {
   let createGroupSQL = `
     INSERT INTO chatgroup
-    (name, created_date)
+    (name, create_date)
     VALUES
     (:groupName, NOW());
   `;
@@ -168,24 +168,12 @@ const createGroup = async (postData) => {
 };
 
 const getAllGroups = async (postData) => {
-  let getAllGroupsSQL = `
-  SELECT c.chatgroup_id, c.name AS group_name, cu.last_read_message_id, m.sent_time AS last_message_time, unread_count.num_messages_behind
-  FROM chatgroup_user AS cu
-  JOIN chatgroup AS c using(chatgroup_id)
-  LEFT JOIN message AS m
-  ON m.message_id = cu.last_read_message_id
-  LEFT JOIN (
-    SELECT  ocu.chatgroup_user_id, ocu.user_id, ocu.chatgroup_id, COUNT(unread_message.message_id) AS num_messages_behind
-    FROM chatgroup_user AS ocu
-    JOIN (
-      SELECT *
-      FROM chatgroup_user AS icu
-      JOIN message AS m USING (chatgroup_user_id)
-      WHERE icu.last_read_message_id < m.message_id
-    ) AS unread_message USING (chatgroup_user_id)
-    GROUP BY ocu.chatgroup_user_id
-  ) AS unread_count USING (user_id, chatgroup_id)
-  WHERE cu.user_id = :userId;
+  const getAllGroupsSQL = `
+    SELECT c.chatgroup_id, c.name AS group_name, cu.last_read_message_id
+    FROM chatgroup_user AS cu
+    JOIN chatgroup AS c USING (chatgroup_id)
+    JOIN user AS u USING (user_id)
+    WHERE user_id = :userId;
   `;
 
   let params = {
@@ -207,7 +195,7 @@ const getAllGroups = async (postData) => {
 
 const getAllMessages = async (postData) => {
   let getAllMessagesSQL = `
-    SELECT u.user_id, u.username, cu.chatgroup_user_id, m.message_id, m.text, m.sent_time, cu.last_read_message_id
+    SELECT u.user_id, u.username, cu.chatgroup_user_id, m.message_id, m.text, m.sent_time
     FROM message AS m
     JOIN chatgroup_user AS cu USING (chatgroup_user_id)
     JOIN user AS u USING (user_id)
@@ -236,9 +224,9 @@ const getAllMessages = async (postData) => {
   }
 };
 
-const getChatgroupUserId = async (postData) => {
-  let getChatgroupUserIdSQL = `
-    SELECT chatgroup_user_id
+const getChatgroupUser = async (postData) => {
+  let getChatgroupUserSQL = `
+    SELECT *
     FROM chatgroup_user
     WHERE user_id = :userId AND chatgroup_id = :chatgroupId;
   `;
@@ -249,16 +237,16 @@ const getChatgroupUserId = async (postData) => {
   };
 
   try {
-    const results = await database.query(getChatgroupUserIdSQL, params);
+    const results = await database.query(getChatgroupUserSQL, params);
 
     console.log(
-      `Successfully found chatgroup_user_id for user ${postData.userId} and group ${postData.chatgroupId}`
+      `Successfully found chatgroup_user for user ${postData.userId} and group ${postData.chatgroupId}`
     );
     console.log(results[0]);
     return results[0];
   } catch (err) {
     console.log(
-      `Error trying to find chatgroup_user_id for user ${postData.userId} and group ${postData.chatgroupId}`
+      `Error trying to find chatgroup_user for user ${postData.userId} and group ${postData.chatgroupId}`
     );
     console.log(err);
     return false;
@@ -316,6 +304,67 @@ const updateLastReadMessage = async (postData) => {
   }
 };
 
+const getLatestMessage = async (postData) => {
+  let getLatestMessageSQL = `
+    SELECT m.message_id, m.sent_time
+    FROM message AS m
+    JOIN chatgroup_user AS cu USING (chatgroup_user_id)
+    WHERE cu.chatgroup_id = :chatgroupId
+    ORDER BY sent_time DESC
+    LIMIT 1;
+  `;
+
+  let params = {
+    chatgroupId: postData.chatgroupId,
+  };
+
+  try {
+    const results = await database.query(getLatestMessageSQL, params);
+
+    console.log(
+      `Successfully found latest message for chatgroup ${postData.chatgroupId}`
+    );
+    console.log(results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(
+      `Error trying to find latest message for chatgroup ${postData.chatgroupId}`
+    );
+    console.log(err);
+    return false;
+  }
+};
+
+const getUnreadMessagesCount = async (postData) => {
+  let getUnreadMessagesSQL = `
+    SELECT COUNT(CASE WHEN m.message_id > :lastReadMessageId THEN 1 END) AS unread_count
+    FROM message AS m
+    LEFT JOIN chatgroup_user AS cu USING (chatgroup_user_id)
+    WHERE chatgroup_id = :chatGroupId;
+  `;
+
+  let params = {
+    lastReadMessageId: postData.lastReadMessageId,
+    chatGroupId: postData.chatgroupId,
+  };
+
+  try {
+    const results = await database.query(getUnreadMessagesSQL, params);
+
+    console.log(
+      `Successfully found unread messages for chatgroup ${postData.chatgroupId}`
+    );
+    console.log(results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(
+      `Error trying to find unread messages for chatgroup ${postData.chatgroupId}`
+    );
+    console.log(err);
+    return false;
+  }
+};
+
 module.exports = {
   createUser,
   getUser,
@@ -324,8 +373,10 @@ module.exports = {
   createGroup,
   getAllGroups,
   getAllMessages,
-  getChatgroupUserId,
+  getChatgroupUser,
   sendMessage,
   updateLastReadMessage,
   getAllUsersNotInGroup,
+  getLatestMessage,
+  getUnreadMessagesCount,
 };

@@ -1,28 +1,38 @@
-<!-- chatgroupId, userId, messages -->
 <%- include("templates/header") %>
-<p><a href="/user/api/updateLastReadMessage/<%- chatgroupId %>/<%= chatgroupUserId %>"><button>Back to User Page</button></a></p>
-<p><a href="/user/invite/<%- chatgroupId %>"><button>Invite People</button></a></p>
+<p>
+  <a href="/user"><button>Back to User Page</button></a>
+</p>
+<p>
+  <a href="/user/invite/<%- chatgroupId %>"><button>Invite People</button></a>
+</p>
 <div>
-    <% console.log(messages) %>
-    <% messages.forEach((message, i) => { %>
-        <% const time = new Date(message.sent_time).toLocaleString('en-us',{year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) %>
-        <% const alignment = message.user_id == userId ? "end" : "start" %>
-        <div style="display: flex; flex-direction: column; padding: 10px; align-items: <%= alignment %>;">
-            <div style="border: solid black; width: fit-content;">
-                <p>
-                    <span style="padding-right: 5px; font-weight: bold;"><%- message.username %></span>
-                    <span style="padding-left: 5px;"><%= time %></span>
-                </p>
-                <p><%- message.text %></p>
-            </div>
-            <% if (message.message_id == message.last_read_message_id && i < messages.length - 1 && messages[messages.length - 1].user_id != userId) { %>
-                <p style="font-weight: bold;">...</p>
-            <% } %>
+  <% messages.forEach((message, i) => { %>
+  <% const time = new Date(message.sent_time).toLocaleString('en-us',{year:
+  "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  second: "2-digit" }) %>
+  <% const alignment = message.user_id == userId ? "flex-end" : "flex-start" %>
+  <div style="display: flex; flex-direction: column; padding: 10px; align-items: <%- alignment %>">
+    <div style="border: solid black; width: fit-content">
+      <p>
+        <span style="padding-right: 5px; font-weight: bold"
+          ><%- message.username %></span
+        >
+        <span style="padding-left: 5px"><%= time %></span>
+      </p>
+      <p><%- message.text %></p>
+    </div>
+    <% if (message.message_id == lastReadMessageId && i <
+    messages.length - 1 && messages[messages.length - 1].user_id != userId) { %>
+        <div style="display: flex; flex-direction: column; width: 100%;">
+            <hr style="color: black; height: 1px; width: 100%;" />
+            <span>Unread</span>
         </div>
-    <% }) %>
+    <% } %>
+  </div>
+  <% }) %>
 </div>
 <form action="/user/api/sendMessage/<%- chatgroupId %>" method="post">
-    <input type="text" name="text" placeholder="Type your message here" />
-    <button type="submit">Send</button>
+  <input type="text" name="text" placeholder="Type your message here" />
+  <button type="submit">Send</button>
 </form>
 <%- include("templates/footer") %>
