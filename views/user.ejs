@@ -28,5 +28,10 @@
         <% }) %>
     </div>
 </div>
+<% let groupCount = 0; %>
+<% if (groups.length > 0) {
+    groupCount = groups.length;
+} %>
+<p>Number of groups joined: <%= groupCount %></p>
 
 <%- include("templates/footer") %>

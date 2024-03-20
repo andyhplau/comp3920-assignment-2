@@ -366,6 +366,78 @@ const getUnreadMessagesCount = async (postData) => {
   }
 };
 
+const getAllEmojis = async () => {
+  let getAllEmojisSQL = `
+    SELECT *
+    FROM emoji;
+  `;
+
+  try {
+    const results = await database.query(getAllEmojisSQL);
+
+    console.log("Successfully found all emojis");
+    console.log(results[0]);
+    return results[0];
+  } catch (err) {
+    console.log("Error trying to find all emojis");
+    console.log(err);
+    return false;
+  }
+};
+
+const getEmojiInMessage = async (postData) => {
+  let getEmojiInMessageSQL = `
+    SELECT e.emoji_id, e.unicode, COUNT(mue.emoji_id) AS count
+    FROM message_user_emoji AS mue
+    JOIN emoji as e USING (emoji_id)
+    WHERE message_id = :messageId
+    GROUP BY e.emoji_id;
+  `;
+
+  let params = {
+    messageId: postData.messageId,
+  };
+
+  try {
+    const results = await database.query(getEmojiInMessageSQL, params);
+
+    console.log(`Successfully found emojis in message ${postData.messageId}`);
+    console.log(results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(`Error trying to find emojis in message ${postData.messageId}`);
+    console.log(err);
+    return false;
+  }
+};
+
+const reactEmojiToMessage = async (postData) => {
+  let reactEmojiToMessageSQL = `
+    INSERT INTO message_user_emoji
+    (message_id, user_id, emoji_id)
+    VALUES
+    (:messageId, :userId, :emojiId);
+  `;
+
+  let params = {
+    messageId: postData.messageId,
+    userId: postData.userId,
+    emojiId: postData.emojiId,
+  };
+
+  try {
+    const results = await database.query(reactEmojiToMessageSQL, params);
+
+    console.log("Successfully reacted emoji to message");
+    console.log(results[0]);
+    return true;
+  } catch (err) {
+    console.log("Error reacting emoji to message");
+    console.log(err);
+    return false;
+  }
+};
+
 module.exports = {
   createUser,
   getUser,
@@ -380,4 +452,7 @@ module.exports = {
   getAllUsersNotInGroup,
   getLatestMessage,
   getUnreadMessagesCount,
+  getAllEmojis,
+  getEmojiInMessage,
+  reactEmojiToMessage,
 };

@@ -18,7 +18,7 @@
   second: "2-digit" }) %>
   <% const alignment = message.user_id == userId ? "flex-end" : "flex-start" %>
   <div style="display: flex; flex-direction: column; padding: 10px; align-items: <%- alignment %>">
-    <div style="border: solid black; width: fit-content">
+    <div style="border: solid black; width: fit-content; padding: 10px;">
       <p>
         <span style="padding-right: 5px; font-weight: bold"
           ><%- message.username %></span
@@ -26,14 +26,31 @@
         <span style="padding-left: 5px"><%= time %></span>
       </p>
       <p><%- message.text %></p>
+      <div style="display: flex; justify-content: space-between;">
+        <% const messageEmojis = emojiReactions.filter(emojiReaction => emojiReaction.messageId == message.message_id) %>
+        <% if(messageEmojis[0].emojis.length > 0) { %>
+            <div>
+              <% messageEmojis[0].emojis.forEach(emoji => { %>
+                <span style="padding-right: 10px;">
+                    &#<%- emoji.unicode %>
+                    <% if (emoji.count > 1) { %>
+                        +<%- emoji.count %>
+                    <% } %>
+                </span>
+              <% }) %>
+            </div>
+        <% } %>
+        <a href="/user/emoji/<%- chatgroupId %>/<%- message.message_id %>"><button>React Emoji</button></a>
+      </div>
     </div>
-    <% if (message.message_id == lastReadMessageId && i <
-    messages.length - 1 && messages[messages.length - 1].user_id != userId) { %>
-        <div style="display: flex; flex-direction: column; width: 100%;">
-            <hr style="color: black; height: 1px; width: 100%;" />
-            <span>Unread</span>
-        </div>
-    <% } %>
+  </div>
+  <% if (message.message_id == lastReadMessageId && i <
+  messages.length - 1 && messages[messages.length - 1].user_id != userId) { %>
+      <div style="display: flex; flex-direction: column; width: 100%; align-items: center;">
+        <hr style="border-color: black; height: 1px; width: 100%; border: dotted 1px black;" />
+          <span>Unread</span>
+      </div>
+  <% } %>
   </div>
   <% }) %>
 </div>

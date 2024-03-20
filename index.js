@@ -140,30 +140,65 @@ app.get("/user/createGroup", (req, res) => {
   });
 });
 
-app.get("/user/chatgroup/:chatgroupId", (req, res) => {
+app.get("/user/chatgroup/:chatgroupId", async (req, res) => {
+  let lastReadMessageId;
   db.getChatgroupUser({
     userId: req.session.user_id,
     chatgroupId: req.params.chatgroupId,
-  }).then((user) => {
-    db.getAllMessages({ chatgroupId: req.params.chatgroupId }).then(
-      (messages) => {
-        const lastReadMessageId = user[0].last_read_message_id;
+  }).then(async (user) => {
+    await db
+      .getAllMessages({ chatgroupId: req.params.chatgroupId })
+      .then(async (messages) => {
+        lastReadMessageId = user[0].last_read_message_id;
+        let emojiReactions = [];
         if (messages.length > 0) {
-          db.updateLastReadMessage({
+          await db.updateLastReadMessage({
             lastReadMessageId: messages[messages.length - 1].message_id,
             chatgroupUserId: user[0].chatgroup_user_id,
           });
+          try {
+            await Promise.all(
+              await messages.map(async (message) => {
+                await db
+                  .getEmojiInMessage({
+                    messageId: message.message_id,
+                  })
+                  .then((emojis) => {
+                    emojiReactions.push({
+                      messageId: message.message_id,
+                      emojis,
+                    });
+                  });
+              })
+            );
+            res.render("group", {
+              username: req.session.username,
+              userId: req.session.user_id,
+              chatgroupId: req.params.chatgroupId,
+              messages: messages,
+              chatgroupUserId: user[0].chatgroup_user_id,
+              lastReadMessageId: lastReadMessageId,
+              emojiReactions,
+            });
+          } catch (err) {
+            console.log(err);
+            res.render("error", {
+              error: "Failed to get emoji reactions.",
+              username: req.session.username,
+            });
+          }
+        } else {
+          res.render("group", {
+            username: req.session.username,
+            userId: req.session.user_id,
+            chatgroupId: req.params.chatgroupId,
+            messages: messages,
+            chatgroupUserId: user[0].chatgroup_user_id,
+            lastReadMessageId: lastReadMessageId,
+            emojiReactions,
+          });
         }
-        res.render("group", {
-          username: req.session.username,
-          userId: req.session.user_id,
-          chatgroupId: req.params.chatgroupId,
-          messages: messages,
-          chatgroupUserId: user[0].chatgroup_user_id,
-          lastReadMessageId: lastReadMessageId,
-        });
-      }
-    );
+      });
   });
 });
 
@@ -181,6 +216,17 @@ app.get("/user/invite/:chatgroupId", (req, res) => {
         });
       }
     );
+  });
+});
+
+app.get("/user/emoji/:chatgroupId/:messageId", (req, res) => {
+  db.getAllEmojis().then((emojis) => {
+    res.render("emoji", {
+      username: req.session.username,
+      emojis: emojis,
+      chatgroupId: req.params.chatgroupId,
+      messageId: req.params.messageId,
+    });
   });
 });
 //#end region Routes
@@ -365,6 +411,24 @@ app.post("/user/api/invite/:chatgroupId", async (req, res) => {
     res.redirect(`/user/chatgroup/${req.params.chatgroupId}`);
   }
 });
+
+app.post("/user/api/reactEmoji/:chatgroupId/:messageId", async (req, res) => {
+  db.reactEmojiToMessage({
+    messageId: req.params.messageId,
+    userId: req.session.user_id,
+    emojiId: req.body.emojis,
+  }).then((result) => {
+    if (result) {
+      res.redirect(`/user/chatgroup/${req.params.chatgroupId}`);
+    } else {
+      res.render("error", {
+        error: "Failed to react emoji.",
+        username: req.session.username,
+      });
+    }
+  });
+});
+
 //#end region APIs
 
 // Catch all not found pages

@@ -1,0 +1,16 @@
+<%- include("templates/header") %>
+<p>
+    <a href="/user/chatgroup/<%- chatgroupId %>"><button>Back to Chatgroup</button></a>
+</p>
+<h1>React the message with an emoji:</h1>
+<form action="/user/api/reactEmoji/<%- chatgroupId %>/<%- messageId %>" method="post">
+    <div>
+        <% emojis.forEach(emoji => { %>
+            <input type="radio" id="<%= emoji.emoji_id %>" name="emojis" value="<%= emoji.emoji_id %>" />
+            <label for="<%= emoji.emoji_id %>">&#<%= emoji.unicode %></label>
+            <br>
+        <% }) %>
+   </div>
+    <button type="submit">React</button>
+</form>
+<%- include("templates/footer") %>

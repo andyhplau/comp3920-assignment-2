@@ -1,4 +1,7 @@
 <%- include("templates/header") %>
+<p>
+    <a href="/user/chatgroup/<%- chatgroupId %>"><button>Back to Chatgroup</button></a>
+</p>
 <h1>Add more users to the group:</h1>
 <form action="/user/api/invite/<%- chatgroupId %><%- lastReadMessageId ? '?lastReadMessageId=' + lastReadMessageId : '' %>" method="post">
     <div class="addUser">
